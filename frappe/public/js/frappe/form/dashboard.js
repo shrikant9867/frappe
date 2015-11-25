@@ -88,7 +88,7 @@ frappe.ui.form.Dashboard = Class.extend({
 	set_badge_count: function(data) {
 		var me = this;
 		$.each(data, function(doctype, count) {
-			if(doctype=='Contact'){
+			if(doctype=='FFWW'){
 				$(me.wrapper)
 				.find(".alert-badge[data-doctype='FFWW'] .badge")
 				.html(cint(count));
