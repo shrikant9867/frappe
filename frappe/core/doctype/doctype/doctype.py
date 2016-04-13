@@ -307,6 +307,7 @@ def validate_fields(meta):
 		for fieldname in (meta.search_fields or "").split(","):
 			fieldname = fieldname.strip()
 			if fieldname not in fieldname_list:
+				print fieldname
 				frappe.throw(_("Search Fields should contain valid fieldnames"))
 
 	def check_title_field(meta):
