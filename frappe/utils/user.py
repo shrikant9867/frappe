@@ -148,9 +148,7 @@ class User:
 		if "System Manager" in self.roles:
 			self.can_import = frappe.db.sql_list("""select name from `tabDocType`
 				where allow_import = 1""")
-
-		self.all_reports = frappe.db.sql("""select name, report_type from tabReport
-			where ref_doctype in ('{0}')""".format("', '".join(self.can_get_report)))
+			
 
 	def get_defaults(self):
 		import frappe.defaults
@@ -209,8 +207,16 @@ class User:
 
 			d[key] = list(set(getattr(self, key)))
 
-		d.all_reports = dict(self.all_reports)
+		d.all_reports = self.get_all_reports()
 		return d
+
+	
+	def get_all_reports(self):
+		reports =  frappe.db.sql("""select name, report_type, ref_doctype from tabReport 
+		    where ref_doctype in ('{0}')""".format("', '".join(self.can_get_report)), as_dict=1)
+			
+		return frappe._dict((d.name, d) for d in reports)
+	
 
 def get_user_fullname(user):
 	fullname = frappe.db.sql("SELECT CONCAT_WS(' ', first_name, last_name) FROM `tabUser` WHERE name=%s", (user,))

@@ -32,19 +32,52 @@ frappe.ui.form.Dashboard = Class.extend({
 	},
 	add_doctype_badge: function(doctype, fieldname) {
 		if(frappe.model.can_read(doctype)) {
-			this.add_badge(__(doctype), doctype, function() {
+			this.add_badge1(__(doctype), doctype, function() {
 				frappe.route_options = {};
 				frappe.route_options[fieldname] = cur_frm.doc.name;
 				frappe.set_route("List", doctype);
 			}).attr("data-doctype", doctype);
 		}
 	},
-	add_badge: function(label, doctype, onclick) {
+
+	// add_doctype_badge_ffww: function(doctype, fieldname,status) {
+	// 	if(frappe.model.can_read(doctype)) {
+	// 		this.add_badge1(__(doctype), doctype, function() {
+	// 			frappe.route_options = {};
+	// 			//frappe.route_options[fieldname] = cur_frm.doc.name;
+	// 			frappe.set_route("List", doctype);
+	// 		}).attr("data-doctype", doctype);
+	// 	}
+	// },
+
+	add_badge1: function(label, doctype, onclick) {
 		var badge = $(repl('<div class="col-md-4">\
 			<div class="alert-badge">\
-				<a class="badge-link h6 text-muted">%(label)s\
-				<span class="badge" style="margin-left: 10px; font-size: 12px;">-</span></a>\
+				<a class="badge-link h6 text-muted"><button style="border:none;background-color:#F2F2F2;font-color:#2E2E2E"><label>%(label)s\
+				<span class="badge" style="margin-left: 10px; font-size: 12px;">-</span></label></button></a>\
 			</div></div>', {label:label, icon: frappe.boot.doctype_icons[doctype]}))
+				.appendTo(this.body)
+
+		badge.find(".badge-link").click(onclick);
+		this.wrapper.toggle(true);
+
+		return badge.find(".alert-badge");
+	},
+
+	add_page_badge: function(label,page_name){
+		this.add_badge(__(page_name), label, function() {
+			frappe.route_options = {};
+			frappe.route_options[page_name] = cur_frm.doc.name;
+			frappe.set_route(label);
+		}).attr("data-doctype", label);	
+	},
+
+	add_badge: function(label, page_name, onclick) {
+		var badge = $(repl('<div class="col-md-4">\
+			<div class="alert-badge">\
+				<a class="badge-link h6 text-muted"><button style="border:none;background-color:#F2F2F2;font-color:#2E2E2E"><label>%(label)s\
+				<span class="badge" style="margin-left: 10px; font-size: 12px;">-</span></label></button></a>\
+			</div></div>', {label:page_name}))
 				.appendTo(this.body)
 
 		badge.find(".badge-link").click(onclick);
@@ -55,9 +88,26 @@ frappe.ui.form.Dashboard = Class.extend({
 	set_badge_count: function(data) {
 		var me = this;
 		$.each(data, function(doctype, count) {
-			$(me.wrapper)
-				.find(".alert-badge[data-doctype='"+doctype+"'] .badge")
+			if(doctype=='FFWW'){
+				$(me.wrapper)
+				.find(".alert-badge[data-doctype='FFWW'] .badge")
 				.html(cint(count));
+			}
+			else if(doctype=='Operational Matrix'){
+				$(me.wrapper)
+				.find(".alert-badge[data-doctype='Operational Matrix'] .badge")
+				.html(cint(count));
+			}
+			else if(doctype=='Project Commercial'){
+				$(me.wrapper)
+				.find(".alert-badge[data-doctype='Project Commercial'] .badge")
+				.html(cint(count));
+			}
+			else{
+				$(me.wrapper)
+					.find(".alert-badge[data-doctype='"+doctype+"'] .badge")
+					.html(cint(count));
+			}
 		});
 	},
 	add_progress: function(title, percent) {
