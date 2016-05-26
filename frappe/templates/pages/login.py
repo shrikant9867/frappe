@@ -181,12 +181,9 @@ def login_via_oauth2(provider, code, decoder=None):
 	if(provider=="microsoft"):
 		session = flow.get_raw_access_token(**args)
 		parsed_access = json.loads(session.content.decode('utf-8'))
-		print parsed_access['id_token']
 		m_token = parsed_access['id_token']
-		print "parsed access done"
 		id_token = jwt.decode(m_token, verify=False)
 		info = {"email": id_token['preferred_username'],"id": id_token['preferred_username'],"token": "8a986a1dd5b044e972584c0aff9a7608c71706168e130a6c92bcab68", "site": "http://localhost:9090"}
-		print info,"before oauthooooooooooooo"
 		login_oauth_user(data=info, provider=provider, email_id=id_token['preferred_username'])
 	
 	else:
@@ -201,13 +198,8 @@ def login_via_oauth2(provider, code, decoder=None):
 @frappe.whitelist(allow_guest=True)
 def login_oauth_user(data=None, provider=None, email_id=None, key=None):
 	if email_id and key:
-		print email_id,"email id"
-		print frappe.db.get_temp(key),"data"
-		data = {'site': 'http://localhost:9090', 'first_name': 'sambhaji',
-		 'token': '8a986a1dd5b044e972584c0aff9a7608c71706168e130a6c92bcab68', 'email': 'sambhaji.kolate@hotmail.com', 'id': 'sambhaji.kolate@hotmail.com'}
-		# data = json.loads(frappe.db.get_temp(key))
-		# data = json.loads(data)
-		# data["email"] = email_id
+		data = {'site': 'http://localhost:9090', 'first_name': 'first_name',
+		 'token': '8a986a1dd5b044e972584c0aff9a7608c71706168e130a6c92bcab68', 'email': 'email@example.com', 'id': 'email@example.com'}
 
 	elif not (data.get("email") and get_first_name(data)) and not frappe.db.exists("User", data.get("email")):
 		# ask for user email
