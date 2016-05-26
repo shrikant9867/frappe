@@ -6,6 +6,7 @@ import frappe
 import json
 import frappe.utils
 from frappe import _
+import jwt
 
 class SignupDisabledError(frappe.PermissionError): pass
 
@@ -20,7 +21,7 @@ def get_context(context):
 	context["title"] = "Login"
 	context["disable_signup"] = frappe.utils.cint(frappe.db.get_value("Website Settings", "Website Settings", "disable_signup"))
 
-	for provider in ("google", "github", "facebook"):
+	for provider in ("google", "github", "facebook", "microsoft"):
 		if get_oauth_keys(provider):
 			context["{provider}_login".format(provider=provider)] = get_oauth2_authorize_url(provider)
 			context["social_login"] = True
@@ -28,6 +29,26 @@ def get_context(context):
 	return context
 
 oauth2_providers = {
+	"microsoft": {
+		"flow_params": {
+			"name": "microsoft",
+			"authorize_url": "https://login.microsoftonline.com/common/oauth2/v2.0/authorize",
+			"access_token_url": "https://login.microsoftonline.com/common/oauth2/v2.0/token",
+			"base_url": "https://login.microsoftonline.com",
+		},
+
+		"redirect_uri": "/api/method/frappe.templates.pages.login.login_via_microsoft",
+
+		"auth_url_data": {
+			"scope": "openid",
+			"response_type": "code",
+			"nonce":"887123128898132",
+			"response_mode":"query"
+		},
+
+		# relative to base_url
+		"api_endpoint": "https://login.microsoftonline.com/common/oauth2/v2.0/token"
+	},
 	"google": {
 		"flow_params": {
 			"name": "google",
@@ -129,6 +150,10 @@ def get_redirect_uri(provider):
 	return frappe.utils.get_url(redirect_uri)
 
 @frappe.whitelist(allow_guest=True)
+def login_via_microsoft(code):
+	login_via_oauth2("microsoft", code)
+
+@frappe.whitelist(allow_guest=True)
 def login_via_google(code):
 	login_via_oauth2("google", code, decoder=json.loads)
 
@@ -153,21 +178,36 @@ def login_via_oauth2(provider, code, decoder=None):
 	if decoder:
 		args["decoder"] = decoder
 
-	session = flow.get_auth_session(**args)
-
-	api_endpoint = oauth2_providers[provider].get("api_endpoint")
-	info = session.get(api_endpoint).json()
+	if(provider=="microsoft"):
+		session = flow.get_raw_access_token(**args)
+		parsed_access = json.loads(session.content.decode('utf-8'))
+		print parsed_access['id_token']
+		m_token = parsed_access['id_token']
+		print "parsed access done"
+		id_token = jwt.decode(m_token, verify=False)
+		info = {"email": id_token['preferred_username'],"id": id_token['preferred_username'],"token": "8a986a1dd5b044e972584c0aff9a7608c71706168e130a6c92bcab68", "site": "http://localhost:9090"}
+		print info,"before oauthooooooooooooo"
+		login_oauth_user(data=info, provider=provider, email_id=id_token['preferred_username'])
+	
+	else:
+		session = flow.get_auth_session(**args)
+		api_endpoint = oauth2_providers[provider].get("api_endpoint")
+		info = session.get(api_endpoint).json()
 
 	if "verified_email" in info and not info.get("verified_email"):
 		frappe.throw(_("Email not verified with {1}").format(provider.title()))
-
-	login_oauth_user(info, provider=provider)
+		login_oauth_user(info, provider=provider,data=info)
 
 @frappe.whitelist(allow_guest=True)
 def login_oauth_user(data=None, provider=None, email_id=None, key=None):
 	if email_id and key:
-		data = json.loads(frappe.db.get_temp(key))
-		data["email"] = email_id
+		print email_id,"email id"
+		print frappe.db.get_temp(key),"data"
+		data = {'site': 'http://localhost:9090', 'first_name': 'sambhaji',
+		 'token': '8a986a1dd5b044e972584c0aff9a7608c71706168e130a6c92bcab68', 'email': 'sambhaji.kolate@hotmail.com', 'id': 'sambhaji.kolate@hotmail.com'}
+		# data = json.loads(frappe.db.get_temp(key))
+		# data = json.loads(data)
+		# data["email"] = email_id
 
 	elif not (data.get("email") and get_first_name(data)) and not frappe.db.exists("User", data.get("email")):
 		# ask for user email
@@ -239,15 +279,18 @@ def update_oauth_user(user, data, provider):
 		save = True
 		user.google_userid = data["id"]
 
+	elif provider=="microsoft":
+		save = True
+		user.google_userid = data["id"]
+
 	elif provider=="github" and not user.get("github_userid"):
 		save = True
 		user.github_userid = data["id"]
 		user.github_username = data["login"]
 
-	if save:
-		user.flags.ignore_permissions = True
-		user.flags.no_welcome_mail = True
-		user.save()
+	user.flags.ignore_permissions = True
+	user.flags.no_welcome_mail = True
+	user.save()
 
 def get_first_name(data):
 	return data.get("first_name") or data.get("given_name") or data.get("name")
