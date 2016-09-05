@@ -1,6 +1,6 @@
 # Controllers
 
-Next step would be adding methods and event handlers to models. In your app, we sould like to ensure that if a Library Tranasction is made, the Artilce in question must be in stock and the member loaning the Article must have a valid membership.
+Next step would be adding methods and event handlers to models. In your app, we sould like to ensure that if a Library Tranasction is made, the Article in question must be in stock and the member loaning the Article must have a valid membership.
 
 For this, we can write a validation just before the Library Transaction object is saved. To do this, open the `library_management/doctype/library_transaction/library_transaction.py` template.
 
@@ -48,7 +48,7 @@ In this script:
 
 Check if your validations work by creating new records
 
-<img class="screenshot" alt="Transaction" src="{{url_prefix}}/assets/img/lib_trans.png">
+<img class="screenshot" alt="Transaction" src="{{docs_base_url}}/assets/img/lib_trans.png">
 
 #### Debugging
 

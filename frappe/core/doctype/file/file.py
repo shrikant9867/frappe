@@ -9,7 +9,7 @@ naming for same name files: file.gif, file-1.gif, file-2.gif etc
 """
 
 import frappe, frappe.utils
-from frappe.utils.file_manager import delete_file_data_content
+from frappe.utils.file_manager import delete_file_data_content, get_content_hash, get_random_filename
 from frappe import _
 
 from frappe.utils.nestedset import NestedSet
@@ -67,7 +67,11 @@ class File(NestedSet):
 		if self.is_new():
 			self.validate_duplicate_entry()
 		self.validate_folder()
-		self.validate_file()
+
+		if not self.flags.ignore_file_validate:
+			self.validate_file()
+			self.generate_content_hash()
+
 		self.set_folder_size()
 
 	def set_folder_size(self):
@@ -104,11 +108,14 @@ class File(NestedSet):
 			frappe.throw(_("Folder is mandatory"))
 
 	def validate_file(self):
+		"""Validates existence of public file
+		TODO: validate for private file
+		"""
 		if (self.file_url or "").startswith("/files/"):
 			if not self.file_name:
 				self.file_name = self.file_url.split("/files/")[-1]
 
-			if not os.path.exists(get_files_path(self.file_name)):
+			if not os.path.exists(get_files_path(self.file_name.lstrip("/"))):
 				frappe.throw(_("File {0} does not exist").format(self.file_url), IOError)
 
 	def validate_duplicate_entry(self):
@@ -126,6 +133,18 @@ class File(NestedSet):
 				self.duplicate_entry = n_records[0][0]
 				frappe.throw(frappe._("Same file has already been attached to the record"), frappe.DuplicateEntryError)
 
+	def generate_content_hash(self):
+		if self.content_hash or not self.file_url:
+			return
+
+		if self.file_url.startswith("/files/"):
+			try:
+				with open(get_files_path(self.file_name.lstrip("/")), "r") as f:
+					self.content_hash = get_content_hash(f.read())
+			except IOError:
+				frappe.msgprint(_("File {0} does not exist").format(self.file_url))
+				raise
+
 	def on_trash(self):
 		if self.is_home_folder or self.is_attachments_folder:
 			frappe.throw(_("Cannot delete Home and Attachments folders"))
@@ -138,32 +157,15 @@ class File(NestedSet):
 		if self.file_url:
 			if self.file_url.startswith("/files"):
 				try:
-					image = Image.open(frappe.get_site_path("public", self.file_url.lstrip("/")))
-					filename, extn = self.file_url.rsplit(".", 1)
+					image, filename, extn = get_local_image(self.file_url)
 				except IOError:
-					frappe.msgprint("Unable to read file format for {0}".format(self.file_url))
+					return
 
 			else:
-				# downlaod
-				file_url = frappe.utils.get_url(self.file_url)
-				r = requests.get(file_url, stream=True)
 				try:
-					r.raise_for_status()
-				except requests.exceptions.HTTPError, e:
-					if "404" in e.args[0]:
-						frappe.msgprint(_("File '{0}' not found").format(self.file_url))
-
-					raise
-
-				image = Image.open(StringIO.StringIO(r.content))
-				filename, extn = self.file_url.rsplit("/", 1)[1].rsplit(".", 1)
-
-				mimetype = mimetypes.guess_type(filename + "." + extn)[0]
-				if mimetype is None or not mimetype.startswith("image/"):
-					# detect file extension by reading image header properties
-					extn = imghdr.what(filename + "." + extn, h=r.content)
-
-				filename = "/files/" + strip(urllib.unquote(filename))
+					image, filename, extn = get_web_image(self.file_url)
+				except (requests.exceptions.HTTPError, requests.exceptions.SSLError):
+					return
 
 			thumbnail = ImageOps.fit(
 				image,
@@ -180,9 +182,9 @@ class File(NestedSet):
 				self.db_set("thumbnail_url", thumbnail_url)
 			except IOError:
 				frappe.msgprint("Unable to write file format for {0}".format(path))
+				return
 
 			return thumbnail_url
-
 
 	def after_delete(self):
 		self.update_parent_folder_size()
@@ -274,3 +276,76 @@ def setup_folder_path(filename, new_parent):
 
 	if file.is_folder:
 		frappe.rename_doc("File", file.name, file.get_name_based_on_parent_folder(), ignore_permissions=True)
+
+def get_extension(filename, extn, content):
+	mimetype = None
+	if extn:
+		mimetype = mimetypes.guess_type(filename + "." + extn)[0]
+
+	if mimetype is None or not mimetype.startswith("image/") and content:
+		# detect file extension by reading image header properties
+		extn = imghdr.what(filename + "." + (extn or ""), h=content)
+
+	return extn
+
+def get_local_image(file_url):
+	file_path = frappe.get_site_path("public", file_url.lstrip("/"))
+
+	try:
+		image = Image.open(file_path)
+	except IOError:
+		frappe.msgprint("Unable to read file format for {0}".format(file_url))
+		raise
+
+	content = None
+
+	try:
+		filename, extn = file_url.rsplit(".", 1)
+	except ValueError:
+		# no extn
+		with open(file_path, "r") as f:
+			content = f.read()
+
+		filename = file_url
+		extn = None
+
+	extn = get_extension(filename, extn, content)
+
+	return image, filename, extn
+
+def get_web_image(file_url):
+	# downlaod
+	file_url = frappe.utils.get_url(file_url)
+	r = requests.get(file_url, stream=True)
+	try:
+		r.raise_for_status()
+	except requests.exceptions.HTTPError, e:
+		if "404" in e.args[0]:
+			frappe.msgprint(_("File '{0}' not found").format(file_url))
+		else:
+			frappe.msgprint("Unable to read file format for {0}".format(file_url))
+		raise
+
+	image = Image.open(StringIO.StringIO(r.content))
+
+	try:
+		filename, extn = file_url.rsplit("/", 1)[1].rsplit(".", 1)
+	except ValueError:
+		# the case when the file url doesn't have filename or extension
+		# but is fetched due to a query string. example: https://encrypted-tbn3.gstatic.com/images?q=something
+		filename = get_random_filename()
+		extn = None
+
+	extn = get_extension(filename, extn, r.content)
+	filename = "/files/" + strip(urllib.unquote(filename))
+
+	return image, filename, extn
+
+def check_file_permission(file_url):
+	for file in frappe.get_all("File", filters={"file_url": file_url, "is_private": 1}, fields=["name", "attached_to_doctype", "attached_to_name"]):
+
+		if (frappe.has_permission("File", ptype="read", doc=file.name)
+			or frappe.has_permission(file.attached_to_doctype, ptype="read", doc=file.attached_to_name)):
+			return True
+
+	raise frappe.PermissionError

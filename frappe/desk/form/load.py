@@ -100,7 +100,7 @@ def get_user_permissions(meta):
 	return out
 
 def get_attachments(dt, dn):
-	return frappe.get_all("File", fields=["name", "file_name", "file_url"],
+	return frappe.get_all("File", fields=["name", "file_name", "file_url", "is_private"],
 		filters = {"attached_to_name": dn, "attached_to_doctype": dt})
 
 def get_comments(dt, dn, limit=100):
@@ -108,8 +108,8 @@ def get_comments(dt, dn, limit=100):
 			reference_doctype, reference_name, comment_type, "Comment" as doctype
 		from `tabComment`
 		where comment_doctype=%s and comment_docname=%s
-		order by creation desc limit %s""" % ('%s','%s', limit),
-			(dt, dn), as_dict=1)
+		order by creation desc limit %s""",
+			(dt, dn, limit), as_dict=1)
 
 	communications = frappe.db.sql("""select name,
 			content as comment, sender as comment_by, creation,
@@ -117,15 +117,15 @@ def get_comments(dt, dn, limit=100):
 			"Communication" as doctype
 		from tabCommunication
 		where reference_doctype=%s and reference_name=%s
-		order by creation desc limit {0}""".format(limit), (dt, dn),
+		order by creation desc limit %s""", (dt, dn, limit),
 			as_dict=True)
 
 	for c in communications:
-		c.attachments = json.dumps([f.file_url for f in frappe.get_all("File",
-			fields=["file_url"],
+		c.attachments = json.dumps(frappe.get_all("File",
+			fields=["file_url", "is_private"],
 			filters={"attached_to_doctype": "Communication",
 				"attached_to_name": c.name}
-			)])
+			))
 
 	return comments + communications
 

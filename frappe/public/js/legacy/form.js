@@ -143,7 +143,8 @@ _f.Frm.prototype.setup_drag_drop = function() {
 			frappe.upload.upload_file(dataTransfer.files[0], me.attachments.get_args(), {
 				callback: function(attachment, r) {
 					me.attachments.attachment_uploaded(attachment, r);
-				}
+				},
+				confirm_is_private: true
 			});
 		});
 }
@@ -445,7 +446,7 @@ _f.Frm.prototype.render_form = function(is_a_different_doc) {
 
 		// trigger global trigger
 		// to use this
-		$(document).trigger('form_refresh');
+		$(document).trigger('form_refresh', [this]);
 
 		// fields
 		this.refresh_fields();
@@ -459,7 +460,7 @@ _f.Frm.prototype.render_form = function(is_a_different_doc) {
 		// focus on first input
 
 		if(this.doc.docstatus==0) {
-			var first = this.form_wrapper.find('.form-layout-row :input:first');
+			var first = this.form_wrapper.find('.form-layout :input:first');
 			if(!in_list(["Date", "Datetime"], first.attr("data-fieldtype"))) {
 				first.focus();
 			}
@@ -593,7 +594,10 @@ _f.Frm.prototype.copy_doc = function(onload, from_amend) {
 	var newdoc = frappe.model.copy_doc(this.doc, from_amend);
 
 	newdoc.idx = null;
-	if(onload)onload(newdoc);
+	newdoc.__run_link_triggers = false;
+	if(onload) {
+		onload(newdoc);
+	}
 	loaddoc(newdoc.doctype, newdoc.name);
 }
 
@@ -635,6 +639,10 @@ _f.Frm.prototype._save = function(save_action, callback, btn, on_error) {
 
 	var after_save = function(r) {
 		if(!r.exc) {
+			if (["Save", "Update", "Amend"].indexOf(save_action)!==-1) {
+				frappe.utils.play_sound("click");
+			}
+
 			me.script_manager.trigger("after_save");
 			me.refresh();
 		} else {
@@ -691,6 +699,7 @@ _f.Frm.prototype.savesubmit = function(btn, callback, on_error) {
 
 			me.save('Submit', function(r) {
 				if(!r.exc) {
+					frappe.utils.play_sound("submit");
 					callback && callback();
 					me.script_manager.trigger("on_submit");
 				}
@@ -713,6 +722,7 @@ _f.Frm.prototype.savecancel = function(btn, callback, on_error) {
 
 			var after_cancel = function(r) {
 				if(!r.exc) {
+					frappe.utils.play_sound("cancel");
 					me.refresh();
 					callback && callback();
 					me.script_manager.trigger("after_cancel");
@@ -746,6 +756,7 @@ _f.Frm.prototype.amend_doc = function() {
 	      newdoc.amendment_date = dateutil.obj_to_str(new Date());
     }
     this.copy_doc(fn, 1);
+	frappe.utils.play_sound("click");
 }
 
 _f.Frm.prototype.disable_save = function() {
@@ -857,4 +868,8 @@ _f.Frm.prototype.validate_form_action = function(action) {
 
 _f.Frm.prototype.get_handlers = function(fieldname, doctype, docname) {
 	return this.script_manager.get_handlers(fieldname, doctype || this.doctype, docname || this.docname)
+}
+
+_f.Frm.prototype.has_perm = function(ptype) {
+	return frappe.perm.has_perm(this.doctype, 0, ptype, this.doc);
 }

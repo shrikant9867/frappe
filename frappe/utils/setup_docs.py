@@ -28,7 +28,7 @@ class setup_docs(object):
 			"app": frappe._dict({
 				"name": self.app,
 				"title": self.app_title,
-				"description": markdown2.markdown(self.hooks.get("app_description")[0]),
+				"description": self.hooks.get("app_description")[0],
 				"version": version,
 				"publisher": self.hooks.get("app_publisher")[0],
 				"icon": self.hooks.get("app_icon")[0],
@@ -38,10 +38,15 @@ class setup_docs(object):
 				"source_link": self.docs_config.source_link,
 				"hide_install": getattr(self.docs_config, "hide_install", False),
 				"docs_base_url": self.docs_config.docs_base_url,
-				"long_description": getattr(self.docs_config, "long_description", ""),
+				"long_description": markdown2.markdown(getattr(self.docs_config, "long_description", "")),
 				"license": self.hooks.get("app_license")[0],
-				"branch": getattr(self.docs_config, "branch", None) or "develop"
-			})
+				"branch": getattr(self.docs_config, "branch", None) or "develop",
+				"style": getattr(self.docs_config, "style", "")
+			}),
+			"metatags": {
+				"description": self.hooks.get("app_description")[0],
+			},
+			"get_doctype_app": frappe.get_doctype_app
 		}
 
 	def build(self, docs_version):
@@ -109,6 +114,16 @@ class setup_docs(object):
 		self.make_folder(self.api_base_path,
 			template = "templates/autodoc/api_home.html")
 
+		# make /user
+		user_path = os.path.join(self.docs_path, "user")
+		if not os.path.exists(user_path):
+			os.makedirs(user_path)
+
+		# make /assets/img
+		img_path = os.path.join(self.docs_path, "assets", "img")
+		if not os.path.exists(img_path):
+			os.makedirs(img_path)
+
 	def build_user_docs(self):
 		"""Build templates for user docs pages, if missing."""
 		#user_docs_path = os.path.join(self.docs_path, "user")
@@ -120,7 +135,7 @@ class setup_docs(object):
 				context = self.app_context)
 
 		with open(os.path.join(self.docs_path, "license.html"), "w") as license_file:
-			license_file.write(html)
+			license_file.write(html.encode("utf-8"))
 
 		# contents
 		shutil.copy(os.path.join(frappe.get_app_path("frappe", "templates", "autodoc",
@@ -143,6 +158,7 @@ class setup_docs(object):
 
 		Called as `bench --site [sitename] sync-docs [appname]`
 		"""
+		frappe.db.sql("delete from `tabWeb Page`")
 		sync = frappe.website.statics.sync()
 		sync.start(path="docs", rebuild=True, apps = [self.app])
 
@@ -261,8 +277,9 @@ class setup_docs(object):
 		"""render templates and write files to target folder"""
 		frappe.local.flags.home_page = "index"
 
+		cnt = 0
 		for page in frappe.db.sql("""select parent_website_route,
-			page_name from `tabWeb Page`""", as_dict=True):
+			page_name from `tabWeb Page` where ifnull(template_path, '')!=''""", as_dict=True):
 
 			if page.parent_website_route:
 				path = page.parent_website_route + "/" + page.page_name
@@ -278,7 +295,7 @@ class setup_docs(object):
 				"page_links_with_extn": True,
 				"relative_links": True,
 				"docs_base_url": self.docs_base_url,
-				"url_prefix": self.docs_base_url
+				"url_prefix": self.docs_base_url,
 			}
 
 			context.update(self.app_context)
@@ -304,10 +321,13 @@ class setup_docs(object):
 
 			if not context.top_bar_items:
 				context.top_bar_items = [
-					{"label": "Contents", "url": self.docs_base_url + "/contents.html", "right": 1},
+					# {"label": "Contents", "url": self.docs_base_url + "/contents.html", "right": 1},
 					{"label": "User Guide", "url": self.docs_base_url + "/user", "right": 1},
 					{"label": "Developer Docs", "url": self.docs_base_url + "/current", "right": 1},
 				]
+
+			context.top_bar_items = [{"label": '<i class="octicon octicon-search"></i>', "url": "#",
+				"right": 1}] + context.top_bar_items
 
 			if not context.favicon:
 				context.favicon = "/assets/img/favicon.ico"
@@ -318,7 +338,7 @@ class setup_docs(object):
 
 			if not "<!-- autodoc -->" in html:
 				html = html.replace('<!-- edit-link -->',
-					'<p><br><a class="text-muted" href="{source_link}/blob/{branch}/{app_name}/docs/{target}">Improve this page</a></p>'.format(\
+					edit_link.format(\
 						source_link = self.docs_config.source_link,
 						app_name = self.app,
 						branch = context.app.branch,
@@ -329,6 +349,10 @@ class setup_docs(object):
 
 			with open(target_filename, "w") as htmlfile:
 				htmlfile.write(html.encode("utf-8"))
+
+				cnt += 1
+
+		print "Wrote {0} files".format(cnt)
 
 
 	def copy_assets(self):
@@ -361,6 +385,7 @@ class setup_docs(object):
 			"js/lib/jquery/jquery.min.js": "js/jquery.min.js",
 			"js/lib/bootstrap.min.js": "js/bootstrap.min.js",
 			"js/lib/highlight.pack.js": "js/highlight.pack.js",
+			"js/docs.js": "js/docs.js",
 			"css/bootstrap.css": "css/bootstrap.css",
 			"css/font-awesome.css": "css/font-awesome.css",
 			"css/docs.css": "css/docs.css",
@@ -369,7 +394,10 @@ class setup_docs(object):
 			"css/octicons": "css/octicons",
 			# always overwrite octicons.css to fix the path
 			"css/octicons/octicons.css": "css/octicons/octicons.css",
-			"images/frappe-bird-grey.svg": "img/frappe-bird-grey.svg"
+			"images/frappe-bird-grey.svg": "img/frappe-bird-grey.svg",
+			"images/background.png": "img/background.png",
+			"images/smiley.png": "img/smiley.png",
+			"images/up.png": "img/up.png"
 		}
 
 		for source, target in copy_files.iteritems():
@@ -380,14 +408,28 @@ class setup_docs(object):
 			else:
 				shutil.copy(source_path, os.path.join(assets_path, target))
 
-		# fix path for font-files
+		# fix path for font-files, background
 		files = (
 			os.path.join(assets_path, "css", "octicons", "octicons.css"),
 			os.path.join(assets_path, "css", "font-awesome.css"),
+			os.path.join(assets_path, "css", "docs.css"),
 		)
 
 		for path in files:
 			with open(path, "r") as css_file:
 				text = css_file.read()
 			with open(path, "w") as css_file:
-				css_file.write(text.replace("/assets/frappe/", self.docs_base_url + '/assets/'))
+				if "docs.css" in path:
+					css_file.write(text.replace("/assets/img/",
+						self.docs_base_url + '/assets/img/'))
+				else:
+					css_file.write(text.replace("/assets/frappe/", self.docs_base_url + '/assets/'))
+
+
+edit_link = '''
+<div class="page-container">
+	<div class="page-content">
+	<a class="text-muted edit" href="{source_link}/blob/{branch}/{app_name}/docs/{target}">
+		Improve this page</a>
+	</div>
+</div>'''

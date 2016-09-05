@@ -99,6 +99,7 @@ frappe.ui.form.ScriptManager = Class.extend({
 		// css
 		doctype.__css && frappe.dom.set_style(doctype.__css);
 
+		this.trigger('setup');
 	},
 	log_error: function(caller, e) {
 		show_alert("Error in Client Script.");
@@ -133,7 +134,7 @@ frappe.ui.form.ScriptManager = Class.extend({
 					if(r.message=='Ok') {
 						if(r.fetch_values)
 							me.set_fetch_values(df, docname, r.fetch_values);
-						if(callback) callback(value);
+						if(callback) callback(r.valid_value);
 					} else {
 						if(callback) callback("");
 					}

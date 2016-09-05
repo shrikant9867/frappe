@@ -180,8 +180,11 @@ class BaseDocument(object):
 
 			df = self.meta.get_field(fieldname)
 			if df:
-				if df.fieldtype=="Check" and not isinstance(d[fieldname], int):
+				if df.fieldtype in ("Check", "Int") and not isinstance(d[fieldname], int):
 					d[fieldname] = cint(d[fieldname])
+
+				elif df.fieldtype in ("Currency", "Float", "Percent") and not isinstance(d[fieldname], float):
+					d[fieldname] = flt(d[fieldname])
 
 				elif df.fieldtype in ("Datetime", "Date") and d[fieldname]=="":
 					d[fieldname] = None
@@ -196,6 +199,9 @@ class BaseDocument(object):
 		for key in default_fields:
 			if key not in self.__dict__:
 				self.__dict__[key] = None
+
+			if key in ("idx", "docstatus") and self.__dict__[key] is None:
+				self.__dict__[key] = 0
 
 		for key in self.get_valid_columns():
 			if key not in self.__dict__:
@@ -325,8 +331,10 @@ class BaseDocument(object):
 
 	def db_set(self, fieldname, value, update_modified=True):
 		self.set(fieldname, value)
-		self.set("modified", now())
-		self.set("modified_by", frappe.session.user)
+		if update_modified:
+			self.set("modified", now())
+			self.set("modified_by", frappe.session.user)
+
 		frappe.db.set_value(self.doctype, self.name, fieldname, value,
 			self.modified, self.modified_by, update_modified=update_modified)
 
@@ -448,19 +456,19 @@ class BaseDocument(object):
 	def _validate_length(self):
 		if frappe.flags.in_install:
 			return
-		
+
 		for fieldname, value in self.get_valid_dict().iteritems():
 			df = self.meta.get_field(fieldname)
 			if df and df.fieldtype in type_map and type_map[df.fieldtype][0]=="varchar":
 				max_length = cint(df.get("length")) or cint(varchar_len)
-								
+
 				if len(cstr(value)) > max_length:
 					if self.parentfield and self.idx:
 						reference = _("{0}, Row {1}").format(_(self.doctype), self.idx)
 
 					else:
 						reference = "{0} {1}".format(_(self.doctype), self.name)
-					
+
 					frappe.throw(_("{0}: '{1}' will get truncated, as max characters allowed is {2}")\
 						.format(reference, _(df.label), max_length), frappe.CharacterLengthExceededError)
 
@@ -548,10 +556,16 @@ class BaseDocument(object):
 		meta_df = self.meta.get_field(fieldname)
 		if meta_df and meta_df.get("__print_hide"):
 			return True
-		if df:
-			return df.print_hide
-		if meta_df:
-			return meta_df.print_hide
+
+		print_hide = 0
+
+		if self.get(fieldname)==0 and not self.meta.istable:
+			print_hide = ( df and df.print_hide_if_no_value ) or ( meta_df and meta_df.print_hide_if_no_value )
+
+		if not print_hide:
+			print_hide = ( df and df.print_hide ) or ( meta_df and meta_df.print_hide )
+
+		return print_hide
 
 	def in_format_data(self, fieldname):
 		"""Returns True if shown via Print Format::`format_data` property.

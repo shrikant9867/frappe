@@ -7,7 +7,7 @@
 <div class="dev-header">
 
 <a class="btn btn-default btn-sm" disabled style="margin-bottom: 10px;">
-	Version 6.6.5</a>
+	Version 6.x.x</a>
 
 
 	<a class="btn btn-default btn-sm" href="https://github.com/frappe/frappe/tree/develop/frappe/core/doctype/file"
@@ -50,8 +50,20 @@
             <td></td>
         </tr>
         
-        <tr class="info">
+        <tr >
             <td>2</td>
+            <td ><code>is_private</code></td>
+            <td >
+                Check</td>
+            <td >
+                Is Private
+                
+            </td>
+            <td></td>
+        </tr>
+        
+        <tr class="info">
+            <td>3</td>
             <td ><code>preview</code></td>
             <td >
                 Section Break</td>
@@ -63,7 +75,7 @@
         </tr>
         
         <tr >
-            <td>3</td>
+            <td>4</td>
             <td ><code>preview_html</code></td>
             <td >
                 HTML</td>
@@ -75,7 +87,7 @@
         </tr>
         
         <tr class="info">
-            <td>4</td>
+            <td>5</td>
             <td ><code>section_break_5</code></td>
             <td >
                 Section Break</td>
@@ -87,7 +99,7 @@
         </tr>
         
         <tr >
-            <td>5</td>
+            <td>6</td>
             <td ><code>is_home_folder</code></td>
             <td >
                 Check</td>
@@ -99,7 +111,7 @@
         </tr>
         
         <tr >
-            <td>6</td>
+            <td>7</td>
             <td ><code>is_attachments_folder</code></td>
             <td >
                 Check</td>
@@ -111,7 +123,7 @@
         </tr>
         
         <tr >
-            <td>7</td>
+            <td>8</td>
             <td ><code>file_size</code></td>
             <td >
                 Int</td>
@@ -123,7 +135,7 @@
         </tr>
         
         <tr >
-            <td>8</td>
+            <td>9</td>
             <td ><code>column_break_5</code></td>
             <td class="info">
                 Column Break</td>
@@ -135,10 +147,10 @@
         </tr>
         
         <tr >
-            <td>9</td>
+            <td>10</td>
             <td ><code>file_url</code></td>
             <td >
-                Data</td>
+                Small Text</td>
             <td >
                 File URL
                 
@@ -147,10 +159,10 @@
         </tr>
         
         <tr >
-            <td>10</td>
+            <td>11</td>
             <td ><code>thumbnail_url</code></td>
             <td >
-                Data</td>
+                Small Text</td>
             <td >
                 Thumbnail URL
                 
@@ -159,7 +171,7 @@
         </tr>
         
         <tr >
-            <td>11</td>
+            <td>12</td>
             <td ><code>folder</code></td>
             <td >
                 Link</td>
@@ -180,7 +192,7 @@
         </tr>
         
         <tr >
-            <td>12</td>
+            <td>13</td>
             <td ><code>is_folder</code></td>
             <td >
                 Check</td>
@@ -192,7 +204,7 @@
         </tr>
         
         <tr class="info">
-            <td>13</td>
+            <td>14</td>
             <td ><code>section_break_8</code></td>
             <td >
                 Section Break</td>
@@ -204,7 +216,7 @@
         </tr>
         
         <tr >
-            <td>14</td>
+            <td>15</td>
             <td ><code>attached_to_doctype</code></td>
             <td >
                 Link</td>
@@ -225,7 +237,7 @@
         </tr>
         
         <tr >
-            <td>15</td>
+            <td>16</td>
             <td ><code>column_break_10</code></td>
             <td class="info">
                 Column Break</td>
@@ -237,7 +249,7 @@
         </tr>
         
         <tr >
-            <td>16</td>
+            <td>17</td>
             <td ><code>attached_to_name</code></td>
             <td >
                 Data</td>
@@ -249,7 +261,7 @@
         </tr>
         
         <tr >
-            <td>17</td>
+            <td>18</td>
             <td ><code>content_hash</code></td>
             <td >
                 Data</td>
@@ -261,7 +273,7 @@
         </tr>
         
         <tr >
-            <td>18</td>
+            <td>19</td>
             <td ><code>lft</code></td>
             <td >
                 Int</td>
@@ -273,7 +285,7 @@
         </tr>
         
         <tr >
-            <td>19</td>
+            <td>20</td>
             <td ><code>rgt</code></td>
             <td >
                 Int</td>
@@ -285,7 +297,7 @@
         </tr>
         
         <tr >
-            <td>20</td>
+            <td>21</td>
             <td ><code>old_parent</code></td>
             <td >
                 Data</td>
@@ -412,6 +424,20 @@
         <i class="text-muted">(self)</i>
     </p>
 	<div class="docs-attr-desc"><p>If file not attached to any other record, delete it</p>
+</div>
+	<br>
+
+        
+        
+    
+    
+	<p class="docs-attr-name">
+        <a name="generate_content_hash" href="#generate_content_hash" class="text-muted small">
+            <i class="icon-link small" style="color: #ccc;"></i></a>
+		<b>generate_content_hash</b>
+        <i class="text-muted">(self)</i>
+    </p>
+	<div class="docs-attr-desc"><p><span class="text-muted">No docs</span></p>
 </div>
 	<br>
 
@@ -593,7 +619,8 @@
 		<b>validate_file</b>
         <i class="text-muted">(self)</i>
     </p>
-	<div class="docs-attr-desc"><p><span class="text-muted">No docs</span></p>
+	<div class="docs-attr-desc"><p>Validates existence of public file
+TODO: validate for private file</p>
 </div>
 	<br>
 
@@ -635,6 +662,22 @@
 	
         
     
+    
+	<p class="docs-attr-name">
+        <a name="frappe.core.doctype.file.file.check_file_permission" href="#frappe.core.doctype.file.file.check_file_permission" class="text-muted small">
+            <i class="icon-link small" style="color: #ccc;"></i></a>
+		frappe.core.doctype.file.file.<b>check_file_permission</b>
+        <i class="text-muted">(file_url)</i>
+    </p>
+	<div class="docs-attr-desc"><p><span class="text-muted">No docs</span></p>
+</div>
+	<br>
+
+	
+
+	
+        
+    
     <p><span class="label label-info">Public API</span>
         <br><code>/api/method/frappe.core.doctype.file.file.create_new_folder</code>
     </p>
@@ -663,6 +706,54 @@
         <i class="text-muted">(folder)</i>
     </p>
 	<div class="docs-attr-desc"><p>returns name, file_name of parent folder</p>
+</div>
+	<br>
+
+	
+
+	
+        
+    
+    
+	<p class="docs-attr-name">
+        <a name="frappe.core.doctype.file.file.get_extension" href="#frappe.core.doctype.file.file.get_extension" class="text-muted small">
+            <i class="icon-link small" style="color: #ccc;"></i></a>
+		frappe.core.doctype.file.file.<b>get_extension</b>
+        <i class="text-muted">(filename, extn, content)</i>
+    </p>
+	<div class="docs-attr-desc"><p><span class="text-muted">No docs</span></p>
+</div>
+	<br>
+
+	
+
+	
+        
+    
+    
+	<p class="docs-attr-name">
+        <a name="frappe.core.doctype.file.file.get_local_image" href="#frappe.core.doctype.file.file.get_local_image" class="text-muted small">
+            <i class="icon-link small" style="color: #ccc;"></i></a>
+		frappe.core.doctype.file.file.<b>get_local_image</b>
+        <i class="text-muted">(file_url)</i>
+    </p>
+	<div class="docs-attr-desc"><p><span class="text-muted">No docs</span></p>
+</div>
+	<br>
+
+	
+
+	
+        
+    
+    
+	<p class="docs-attr-name">
+        <a name="frappe.core.doctype.file.file.get_web_image" href="#frappe.core.doctype.file.file.get_web_image" class="text-muted small">
+            <i class="icon-link small" style="color: #ccc;"></i></a>
+		frappe.core.doctype.file.file.<b>get_web_image</b>
+        <i class="text-muted">(file_url)</i>
+    </p>
+	<div class="docs-attr-desc"><p><span class="text-muted">No docs</span></p>
 </div>
 	<br>
 
@@ -740,12 +831,14 @@
         <h4>Linked In:</h4>
         <ul>
         
+			
             <li>
 
 
 <a href="https://frappe.github.io/frappe/current/models/core/file">File</a>
 
 </li>
+			
         
         </ul>
     

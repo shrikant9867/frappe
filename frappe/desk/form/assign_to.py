@@ -38,8 +38,12 @@ def add(args=None):
 		and owner=%(assign_to)s""", args):
 		frappe.msgprint(_("Already in user's To Do list"), raise_exception=True)
 		return
+
 	else:
 		from frappe.utils import nowdate
+
+		if args.get("re_assign"):
+			remove_from_todo_if_already_assigned(args['doctype'], args['name'])
 
 		d = frappe.get_doc({
 			"doctype":"ToDo",
@@ -58,10 +62,31 @@ def add(args=None):
 			frappe.db.set_value(args['doctype'], args['name'], "assigned_to", args['assign_to'])
 
 	# notify
-	if not args.get("no_notification"):
-		notify_assignment(d.assigned_by, d.owner, d.reference_type, d.reference_name, action='ASSIGN', description=args.get("description"), notify=args.get('notify'))
+	notify_assignment(d.assigned_by, d.owner, d.reference_type, d.reference_name, action='ASSIGN',\
+			 description=args.get("description"), notify=args.get('notify'))
 
-	return get(args)
+	if not args.get("bulk_assign"):
+		return get(args)
+	else:
+		return {}
+
+@frappe.whitelist()
+def add_multiple(args=None):
+	import json
+
+	if not args:
+		args = frappe.local.form_dict
+
+	docname_list = json.loads(args['name'])
+
+	for docname in docname_list:
+		args.update({"name": docname})
+		add(args)
+
+def remove_from_todo_if_already_assigned(doctype, docname):
+	owner = frappe.db.get_value("ToDo", {"reference_type": doctype, "reference_name": docname, "status":"Open"}, "owner")
+	if owner:
+		remove(doctype, docname, owner)
 
 @frappe.whitelist()
 def remove(doctype, name, assign_to):
@@ -130,5 +155,6 @@ def notify_assignment(assigned_by, owner, doc_type, doc_name, action='CLOSE',
 		}
 
 	arg["parenttype"] = "Assignment"
+
 	from frappe.desk.page.messages import messages
 	messages.post(**arg)

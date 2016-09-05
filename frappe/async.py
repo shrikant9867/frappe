@@ -20,7 +20,7 @@ redis_server = None
 def handler(f):
 	cmd = f.__module__ + '.' + f.__name__
 
-	def run(args, set_in_response=True):
+	def run(args, set_in_response=True, hijack_std=False):
 		from frappe.tasks import run_async_task
 		from frappe.handler import execute_cmd
 		if frappe.conf.disable_async:
@@ -28,7 +28,7 @@ def handler(f):
 		args = frappe._dict(args)
 		task = run_async_task.delay(site=frappe.local.site,
 			user=(frappe.session and frappe.session.user) or 'Administrator', cmd=cmd,
-			form_dict=args)
+									form_dict=args, hijack_std=hijack_std)
 		if set_in_response:
 			frappe.local.response['task_id'] = task.id
 		return task.id
@@ -51,7 +51,7 @@ def handler(f):
 
 @frappe.whitelist()
 def get_pending_tasks_for_doc(doctype, docname):
-	return frappe.db.sql_list("select name from `tabAsync Task` where status in ('Queued', 'Running') and reference_doctype='%s' and reference_name='%s'" % (doctype, docname))
+	return frappe.db.sql_list("select name from `tabAsync Task` where status in ('Queued', 'Running') and reference_doctype=%s and reference_name=%s", (doctype, docname))
 
 
 @handler
@@ -159,7 +159,7 @@ def put_log(line_no, line, task_id=None):
 			"lines": {line_no: line}
 		},
 		"task_id": task_id
-	}, room=task_progress_room)
+	}, room=task_progress_room, now=True)
 	r.hset(task_log_key, line_no, line)
 	r.expire(task_log_key, 3600)
 

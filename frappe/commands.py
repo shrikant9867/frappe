@@ -126,9 +126,8 @@ def restore(context, sql_file_path, mariadb_root_username=None, mariadb_root_pas
 
 	site = get_single_site(context)
 	frappe.init(site=site)
-	if not db_name:
-		db_name = frappe.conf.db_name
-		_new_site(db_name, site, mariadb_root_username=mariadb_root_username, mariadb_root_password=mariadb_root_password, admin_password=admin_password, verbose=context.verbose, install_apps=install_app, source_sql=sql_file_path, force=context.force)
+	db_name = db_name or frappe.conf.db_name or hashlib.sha1(site).hexdigest()[:10]
+	_new_site(db_name, site, mariadb_root_username=mariadb_root_username, mariadb_root_password=mariadb_root_password, admin_password=admin_password, verbose=context.verbose, install_apps=install_app, source_sql=sql_file_path, force=context.force)
 
 @click.command('reinstall')
 @pass_context
@@ -405,19 +404,43 @@ def write_docs(context, app, target, local=False):
 @click.argument('docs_version')
 @click.argument('target')
 @click.option('--local', default=False, is_flag=True, help='Run app locally')
-def build_docs(context, app, docs_version, target, local=False):
+@click.option('--watch', default=False, is_flag=True, help='Watch for changes and rewrite')
+def build_docs(context, app, docs_version, target, local=False, watch=False):
 	"Setup docs in target folder of target app"
-	from frappe.utils.setup_docs import setup_docs
+	from frappe.utils import watch as start_watch
 	for site in context.sites:
-		try:
-			frappe.init(site=site)
-			frappe.connect()
-			make = setup_docs(app)
+		_build_docs_once(site, app, docs_version, target, local)
+
+		if watch:
+			def trigger_make(source_path, event_type):
+				if "/templates/autodoc/" in source_path:
+					_build_docs_once(site, app, docs_version, target, local)
+
+				elif ("/docs.css" in source_path
+					or "/docs/" in source_path
+					or "docs.py" in source_path):
+					_build_docs_once(site, app, docs_version, target, local, only_content_updated=True)
+
+			apps_path = frappe.get_app_path("frappe", "..", "..")
+			start_watch(apps_path, handler=trigger_make)
+
+def _build_docs_once(site, app, docs_version, target, local, only_content_updated=False):
+	from frappe.utils.setup_docs import setup_docs
+
+	try:
+
+		frappe.init(site=site)
+		frappe.connect()
+		make = setup_docs(app)
+
+		if not only_content_updated:
 			make.build(docs_version)
 			make.sync_docs()
-			make.make_docs(target, local)
-		finally:
-			frappe.destroy()
+
+		make.make_docs(target, local)
+
+	finally:
+		frappe.destroy()
 
 
 @click.command('reset-perms')
@@ -430,7 +453,7 @@ def reset_perms(context):
 			frappe.init(site=site)
 			frappe.connect()
 			for d in frappe.db.sql_list("""select name from `tabDocType`
-				where ifnull(istable, 0)=0 and ifnull(custom, 0)=0"""):
+				where istable=0 and custom=0"""):
 					frappe.clear_cache(doctype=d)
 					reset_perms(d)
 		finally:
@@ -447,7 +470,6 @@ def execute(context, method, args=None, kwargs=None):
 		try:
 			frappe.init(site=site)
 			frappe.connect()
-			print frappe.local.site
 
 			if args:
 				args = eval(args)
@@ -466,7 +488,7 @@ def execute(context, method, args=None, kwargs=None):
 		finally:
 			frappe.destroy()
 		if ret:
-			print ret
+			print json.dumps(ret)
 
 @click.command('celery')
 @click.argument('args')
@@ -625,7 +647,7 @@ def import_csv(context, path, only_insert=False, submit_after_import=False, igno
 @click.argument('path')
 @pass_context
 def _bulk_rename(context, doctype, path):
-	"Import CSV using data import tool"
+	"Rename multiple records via CSV file"
 	from frappe.model.rename_doc import bulk_rename
 	from frappe.utils.csvutils import read_csv_content
 
@@ -846,21 +868,23 @@ def use(site, sites_path='.'):
 @click.command('backup')
 @click.option('--with-files', default=False, is_flag=True, help="Take backup with files")
 @pass_context
-def backup(context, with_files=False, backup_path_db=None, backup_path_files=None, quiet=False):
+def backup(context, with_files=False, backup_path_db=None, backup_path_files=None,
+	backup_path_private_files=None, quiet=False):
 	"Backup"
 	from frappe.utils.backups import scheduled_backup
 	verbose = context.verbose
 	for site in context.sites:
 		frappe.init(site=site)
 		frappe.connect()
-		odb = scheduled_backup(ignore_files=not with_files, backup_path_db=backup_path_db, backup_path_files=backup_path_files, force=True)
+		odb = scheduled_backup(ignore_files=not with_files, backup_path_db=backup_path_db, backup_path_files=backup_path_files, backup_path_private_files=backup_path_private_files, force=True)
 		if verbose:
 			from frappe.utils import now
 			print "database backup taken -", odb.backup_path_db, "- on", now()
 			if with_files:
 				print "files backup taken -", odb.backup_path_files, "- on", now()
-		frappe.destroy()
+				print "private files backup taken -", odb.backup_path_private_files, "- on", now()
 
+		frappe.destroy()
 
 @click.command('remove-from-installed-apps')
 @click.argument('app')

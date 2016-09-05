@@ -51,7 +51,7 @@ frappe.views.CommunicationComposer = Class.extend({
 
 		var fields_before_cc = [
 			{fieldtype: "Section Break"},
-			{label:__("To"), fieldtype:"Data", reqd: 1, fieldname:"recipients"},
+			{label:__("To"), fieldtype:"Data", reqd: 0, fieldname:"recipients"},
 			{fieldtype: "Section Break", collapsible: 1, label: "CC & Standard Reply"},
 			{label:__("CC"), fieldtype:"Data", fieldname:"cc"},
 		];
@@ -399,6 +399,11 @@ frappe.views.CommunicationComposer = Class.extend({
 	send_email: function(btn, form_values, selected_attachments, print_html, print_format) {
 		var me = this;
 
+		if((form_values.send_email || form_values.communication_medium === "Email") && !form_values.recipients){
+        		msgprint(__("Enter Email Recipient(s)"));
+            		return;
+        	}
+
 		if(!form_values.attach_document_print) {
 			print_html = null;
 			print_format = null;
@@ -434,6 +439,8 @@ frappe.views.CommunicationComposer = Class.extend({
 			btn: btn,
 			callback: function(r) {
 				if(!r.exc) {
+					frappe.utils.play_sound("email");
+
 					if(form_values.send_email && r.message["emails_not_sent_to"]) {
 						msgprint( __("Email not sent to {0} (unsubscribed / disabled)",
 							[ frappe.utils.escape_html(r.message["emails_not_sent_to"]) ]) );

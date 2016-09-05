@@ -7,6 +7,7 @@ import json
 from email.utils import formataddr, parseaddr
 from frappe.utils import get_url, get_formatted_email, cint, validate_email_add, split_emails
 from frappe.utils.file_manager import get_file
+from frappe.email.bulk import check_bulk_limit
 import frappe.email.smtp
 from frappe import _
 
@@ -103,6 +104,8 @@ class Communication(Document):
 			self._notify(print_html=print_html, print_format=print_format, attachments=attachments,
 				recipients=recipients, cc=cc)
 		else:
+			check_bulk_limit(list(set(self.sent_email_addresses)))
+
 			from frappe.tasks import sendmail
 			sendmail.delay(frappe.local.site, self.name,
 				print_html=print_html, print_format=print_format, attachments=attachments,
@@ -362,7 +365,7 @@ def make(doctype=None, name=None, content=None, subject=None, sent_or_received =
 		raise frappe.PermissionError("You are not allowed to send emails related to: {doctype} {name}".format(
 			doctype=doctype, name=name))
 
-	if not sender and frappe.session.user != "Administrator":
+	if not sender:
 		sender = get_formatted_email(frappe.session.user)
 
 	comm = frappe.get_doc({
@@ -391,7 +394,3 @@ def make(doctype=None, name=None, content=None, subject=None, sent_or_received =
 		"name": comm.name,
 		"emails_not_sent_to": ", ".join(comm.emails_not_sent_to) if hasattr(comm, "emails_not_sent_to") else None
 	}
-
-@frappe.whitelist()
-def get_convert_to():
-	return frappe.get_hooks("communication_convert_to")

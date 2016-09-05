@@ -194,7 +194,7 @@ frappe.search.verbs = [
 			// remove list keyword
 			txt = txt.replace(/ list/ig, "").trim();
 		}
-		
+
 		frappe.search.find(frappe.boot.user.can_read, txt, function(match) {
 			if(in_list(frappe.boot.single_types, match)) {
 				return {
@@ -235,8 +235,8 @@ frappe.search.verbs = [
 	function(txt) {
 		frappe.search.find(keys(frappe.search.pages), txt, function(match) {
 			return {
-				label: __("Report {0}", ["<b>"+__(match)+"</b>"]),
-				value: __("Report {0}", [__(match)]),
+				label: __("Open {0}", ["<b>"+__(match)+"</b>"]),
+				value: __("Open {0}", [__(match)]),
 				route: [frappe.search.pages[match].route || frappe.search.pages[match].name]
 			}
 		});

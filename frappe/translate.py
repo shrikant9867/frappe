@@ -12,6 +12,7 @@ from __future__ import unicode_literals
 
 import frappe, os, re, codecs, json
 from frappe.utils.jinja import render_include
+from frappe.utils import strip
 from jinja2 import TemplateError
 import itertools, operator
 
@@ -192,10 +193,10 @@ def load_lang(lang, apps=None):
 			for item in csv_content:
 				if len(item)==3:
 					# with file and line numbers
-					cleaned[item[1]] = item[2]
+					cleaned[item[1]] = strip(item[2])
 
 				elif len(item)==2:
-					cleaned[item[0]] = item[1]
+					cleaned[item[0]] = strip(item[1])
 
 				else:
 					raise Exception("Bad translation in '{app}' for language '{lang}': {values}".format(
@@ -306,7 +307,7 @@ def _get_messages_from_page_or_report(doctype, name, module=None):
 
 	doc_path = frappe.get_module_path(module, doctype, name)
 
-	messages = get_messages_from_file(os.path.join(doc_path, name +".py"))
+	messages = get_messages_from_file(os.path.join(doc_path, frappe.scrub(name) +".py"))
 
 	if os.path.exists(doc_path):
 		for filename in os.listdir(doc_path):
@@ -362,6 +363,7 @@ def get_messages_from_file(path):
 			return [(os.path.relpath(" +".join([path, str(pos)]), apps_path),
 					message) for pos, message in  extract_messages_from_code(sourcefile.read(), path.endswith(".py"))]
 	else:
+		# print "Translate: {0} missing".format(os.path.abspath(path))
 		return []
 
 def extract_messages_from_code(code, is_py=False):
@@ -423,7 +425,7 @@ def write_csv_file(path, app_messages, lang_dict):
 	:param app_messages: Translatable strings for this app.
 	:param lang_dict: Full translated dict.
 	"""
-	app_messages.sort()
+	app_messages.sort(lambda x,y: cmp(x[1], y[1]))
 	from csv import writer
 	with open(path, 'wb') as msgfile:
 		w = writer(msgfile, lineterminator='\n')

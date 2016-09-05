@@ -31,7 +31,6 @@ def get_bootinfo():
 		bootinfo['user_info'] = get_fullnames()
 		bootinfo['sid'] = frappe.session['sid'];
 
-	# home page
 	bootinfo.modules = {}
 	for app in frappe.get_installed_apps():
 		try:
@@ -45,7 +44,7 @@ def get_bootinfo():
 	bootinfo.hidden_modules = frappe.db.get_global("hidden_modules")
 	bootinfo.doctype_icons = dict(frappe.db.sql("""select name, icon from
 		tabDocType where ifnull(icon,'')!=''"""))
-	bootinfo.single_types = frappe.db.sql_list("""select name from tabDocType where ifnull(issingle,0)=1""")
+	bootinfo.single_types = frappe.db.sql_list("""select name from tabDocType where issingle=1""")
 	add_home_page(bootinfo, doclist)
 	bootinfo.page_info = get_allowed_pages()
 	load_translations(bootinfo)
@@ -121,7 +120,7 @@ def get_fullnames():
 		concat(ifnull(first_name, ''),
 			if(ifnull(last_name, '')!='', ' ', ''), ifnull(last_name, '')) as fullname,
 			user_image as image, gender, email
-		from tabUser where ifnull(enabled, 0)=1 and user_type!="Website User" """, as_dict=1)
+		from tabUser where enabled=1 and user_type!="Website User" """, as_dict=1)
 
 	d = {}
 	for r in ret:
@@ -140,10 +139,15 @@ def add_home_page(bootinfo, docs):
 	if frappe.session.user=="Guest":
 		return
 	home_page = frappe.db.get_default("desktop:home_page")
+
+	if home_page == "setup-wizard":
+		bootinfo.setup_wizard_requires = frappe.get_hooks("setup_wizard_requires")
+
 	try:
 		page = frappe.desk.desk_page.get(home_page)
 	except (frappe.DoesNotExistError, frappe.PermissionError):
-		frappe.message_log.pop()
+		if frappe.message_log:
+			frappe.message_log.pop()
 		page = frappe.desk.desk_page.get('desktop')
 
 	bootinfo['home_page'] = page.name

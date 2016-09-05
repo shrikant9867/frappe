@@ -523,16 +523,27 @@ frappe.ui.form.ControlDate = frappe.ui.form.ControlData.extend({
 	datepicker_options: {
 		altFormat:'yy-mm-dd',
 		changeYear: true,
+		changeMonth: true,
 		yearRange: "-70Y:+10Y",
 	},
 	make_input: function() {
 		this._super();
+		this.set_t_for_today();
 		this.set_datepicker();
 	},
 	set_datepicker: function() {
 		this.datepicker_options.dateFormat =
 			(frappe.boot.sysdefaults.date_format || 'yyyy-mm-dd').replace("yyyy", "yy")
 		this.$input.datepicker(this.datepicker_options);
+	},
+	set_t_for_today: function() {
+		var me = this;
+		this.$input.on("keydown", function(e) {
+			if(e.which===84) { // 84 === t
+				me.set_value(frappe.datetime.str_to_user(frappe.datetime.nowdate()));
+				return false;
+			}
+		});
 	},
 	parse: function(value) {
 		if(value) {
@@ -798,14 +809,18 @@ frappe.ui.form.ControlAttach = frappe.ui.form.ControlData.extend({
 			},
 			onerror: function() {
 				me.dialog.hide();
-			},
+			}
+		}
+
+		if ("is_private" in this.df) {
+			this.upload_options.is_private = this.df.is_private;
 		}
 
 		if(this.frm) {
 			this.upload_options.args = {
 				from_form: 1,
 				doctype: this.frm.doctype,
-				docname: this.frm.docname,
+				docname: this.frm.docname
 			}
 		} else {
 			this.upload_options.on_attach = function(fileobj, dataurl) {
@@ -876,15 +891,20 @@ frappe.ui.form.ControlAttachImage = frappe.ui.form.ControlAttach.extend({
 		this.img.on("click", function() { me.$input.click(); });
 
 		this.$wrapper.on("refresh", function() {
-			if(me.get_value()) {
-				$(me.input_area).find(".missing-image").toggle(false);
-				me.img.attr("src", me.dataurl ? me.dataurl : me.value).toggle(true);
-			} else {
-				$(me.input_area).find(".missing-image").toggle(true);
-				me.img.toggle(false);
-			}
+			me.set_image();
 		});
+
+		this.set_image();
 	},
+	set_image: function() {
+		if(this.get_value()) {
+			$(this.input_area).find(".missing-image").toggle(false);
+			this.img.attr("src", this.dataurl ? this.dataurl : this.value).toggle(true);
+		} else {
+			$(this.input_area).find(".missing-image").toggle(true);
+			this.img.toggle(false);
+		}
+	}
 });
 
 
@@ -1085,6 +1105,10 @@ frappe.ui.form.ControlLink = frappe.ui.form.ControlData.extend({
 					no_spinner: true,
 					args: args,
 					callback: function(r) {
+						if(!me.$input.is(":focus")) {
+							return;
+						}
+
 						if(!me.df.only_select) {
 							if(frappe.model.can_create(doctype)
 								&& me.df.fieldtype !== "Dynamic Link") {
@@ -1128,8 +1152,16 @@ frappe.ui.form.ControlLink = frappe.ui.form.ControlData.extend({
 			},
 			select: function(event, ui) {
 				me.autocomplete_open = false;
+
 				if(ui.item.action) {
 					ui.item.action.apply(me);
+				}
+
+				// prevent selection on tab
+				var TABKEY = 9;
+				if(event.keyCode === TABKEY) {
+					event.preventDefault();
+					me.$input.autocomplete("close");
 					return false;
 				}
 
@@ -1141,7 +1173,11 @@ frappe.ui.form.ControlLink = frappe.ui.form.ControlData.extend({
 					me.$input.trigger("change");
 				}
 			}
-		}).data('ui-autocomplete')._renderItem = function(ul, d) {
+		})
+		.on("blur", function() {
+			$(this).autocomplete("close");
+		})
+		.data('ui-autocomplete')._renderItem = function(ul, d) {
 			var html = "<strong>" + __(d.value) + "</strong>";
 			if(d.description && d.value!==d.description) {
 				html += '<br><span class="small">' + __(d.description) + '</span>';
@@ -1218,10 +1254,10 @@ frappe.ui.form.ControlDynamicLink = frappe.ui.form.ControlLink.extend({
 			return this.df.get_options();
 		}
 		var options = frappe.model.get_value(this.df.parent, this.docname, this.df.options);
-		if(!options) {
-			msgprint(__("Please set {0} first",
-				[frappe.meta.get_docfield(this.df.parent, this.df.options, this.docname).label]));
-		}
+		// if(!options) {
+		// 	msgprint(__("Please set {0} first",
+		// 		[frappe.meta.get_docfield(this.df.parent, this.df.options, this.docname).label]));
+		// }
 		return options;
 	},
 });

@@ -344,7 +344,7 @@ class Database:
 					_rhs = " ({0})".format(", ".join(inner_list))
 					del values[key]
 
-			if _operator not in ["=", "!=", ">", ">=", "<", "<=", "like", "in", "not in"]:
+			if _operator not in ["=", "!=", ">", ">=", "<", "<=", "like", "in", "not in", "not like"]:
 				_operator = "="
 
 			if "[" in key:
@@ -788,4 +788,4 @@ class Database:
 		"""Excape quotes and percent in given string."""
 		if isinstance(s, unicode):
 			s = (s or "").encode("utf-8")
-		return unicode(MySQLdb.escape_string(s), "utf-8").replace("%","%%")
+		return unicode(MySQLdb.escape_string(s), "utf-8").replace("%","%%").replace("`", "\\`")

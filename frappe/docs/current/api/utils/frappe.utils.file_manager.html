@@ -1,7 +1,7 @@
 <!-- title: frappe.utils.file_manager --><div class="dev-header">
 
 <a class="btn btn-default btn-sm" disabled style="margin-bottom: 10px;">
-	Version 6.6.5</a>
+	Version 6.x.x</a>
 
 
 	<a class="btn btn-default btn-sm" href="https://github.com/frappe/frappe/blob/develop/frappe/utils/file_manager.py"
@@ -150,7 +150,7 @@
 		frappe.utils.file_manager.<b>get_file</b>
         <i class="text-muted">(fname)</i>
     </p>
-	<div class="docs-attr-desc"><p><span class="text-muted">No docs</span></p>
+	<div class="docs-attr-desc"><p>Returns [<code>file_name</code>, <code>content</code>] for given file name <code>fname</code></p>
 </div>
 	<br>
 
@@ -164,7 +164,7 @@
         <a name="frappe.utils.file_manager.get_file_data_from_hash" href="#frappe.utils.file_manager.get_file_data_from_hash" class="text-muted small">
             <i class="icon-link small" style="color: #ccc;"></i></a>
 		frappe.utils.file_manager.<b>get_file_data_from_hash</b>
-        <i class="text-muted">(content_hash)</i>
+        <i class="text-muted">(content_hash, is_private=0)</i>
     </p>
 	<div class="docs-attr-desc"><p><span class="text-muted">No docs</span></p>
 </div>
@@ -183,6 +183,22 @@
         <i class="text-muted">(fname, optional_suffix)</i>
     </p>
 	<div class="docs-attr-desc"><p><span class="text-muted">No docs</span></p>
+</div>
+	<br>
+
+	
+
+	
+        
+    
+    
+	<p class="docs-attr-name">
+        <a name="frappe.utils.file_manager.get_file_path" href="#frappe.utils.file_manager.get_file_path" class="text-muted small">
+            <i class="icon-link small" style="color: #ccc;"></i></a>
+		frappe.utils.file_manager.<b>get_file_path</b>
+        <i class="text-muted">(file_name)</i>
+    </p>
+	<div class="docs-attr-desc"><p>Returns file path from given file name</p>
 </div>
 	<br>
 
@@ -292,7 +308,7 @@
         <a name="frappe.utils.file_manager.save_file" href="#frappe.utils.file_manager.save_file" class="text-muted small">
             <i class="icon-link small" style="color: #ccc;"></i></a>
 		frappe.utils.file_manager.<b>save_file</b>
-        <i class="text-muted">(fname, content, dt, dn, folder=None, decode=False)</i>
+        <i class="text-muted">(fname, content, dt, dn, folder=None, decode=False, is_private=0)</i>
     </p>
 	<div class="docs-attr-desc"><p><span class="text-muted">No docs</span></p>
 </div>
@@ -308,7 +324,7 @@
         <a name="frappe.utils.file_manager.save_file_on_filesystem" href="#frappe.utils.file_manager.save_file_on_filesystem" class="text-muted small">
             <i class="icon-link small" style="color: #ccc;"></i></a>
 		frappe.utils.file_manager.<b>save_file_on_filesystem</b>
-        <i class="text-muted">(fname, content, content_type=None)</i>
+        <i class="text-muted">(fname, content, content_type=None, is_private=0)</i>
     </p>
 	<div class="docs-attr-desc"><p><span class="text-muted">No docs</span></p>
 </div>
@@ -324,7 +340,7 @@
         <a name="frappe.utils.file_manager.save_uploaded" href="#frappe.utils.file_manager.save_uploaded" class="text-muted small">
             <i class="icon-link small" style="color: #ccc;"></i></a>
 		frappe.utils.file_manager.<b>save_uploaded</b>
-        <i class="text-muted">(dt, dn, folder)</i>
+        <i class="text-muted">(dt, dn, folder, is_private)</i>
     </p>
 	<div class="docs-attr-desc"><p><span class="text-muted">No docs</span></p>
 </div>
@@ -372,7 +388,7 @@
         <a name="frappe.utils.file_manager.write_file" href="#frappe.utils.file_manager.write_file" class="text-muted small">
             <i class="icon-link small" style="color: #ccc;"></i></a>
 		frappe.utils.file_manager.<b>write_file</b>
-        <i class="text-muted">(content, file_path, fname)</i>
+        <i class="text-muted">(content, fname, is_private=0)</i>
     </p>
 	<div class="docs-attr-desc"><p>write file to disk with a random name (to compare)</p>
 </div>
