@@ -13,6 +13,11 @@
 				<i class="icon-facebook-sign"></i> {{ _("Facebook") }}</a>
 				{%- endif -%}
 
+				{%- if microsoft_login is defined %}
+				<a href="{{ microsoft_login }}" class="grey no-decoration btn-social btn-github">
+				<i class="icon-windows "></i> {{ _("Microsoft") }}</a>
+				{%- endif -%}
+
 				{%- if google_login is defined %}
 				<a href="{{ google_login }}" class="grey no-decoration btn-social btn-google">
 				<i class="icon-google-plus-sign"></i> {{ _("Google") }}</a>
